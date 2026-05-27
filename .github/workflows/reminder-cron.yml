@@ -1,0 +1,14 @@
+name: Reminder Cron
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  send-due-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger reminder delivery
+        run: |
+          curl --fail --show-error --silent https://remind.kuudere.cc/api/cron/reminders

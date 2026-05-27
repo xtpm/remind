@@ -271,6 +271,51 @@ export async function deleteReminder(userId: string, id: string) {
   await writeLocalDb(db);
 }
 
+export async function listDueDiscordReminders() {
+  if (usePostgres()) {
+    await ensurePostgres();
+    const rows = await getSql()`
+      select reminders.*, user_settings.discord_webhook
+      from reminders
+      join user_settings on user_settings.user_id = reminders.user_id
+      where reminders.done = false
+        and reminders.sent_at is null
+        and reminders.due_at <= now()
+        and reminders.channels ? 'discord'
+        and user_settings.discord_webhook <> ''
+      order by reminders.due_at asc
+      limit 50
+    `;
+
+    return rows.map((row) => ({
+      reminder: mapReminder(row),
+      discordWebhook: String(row.discord_webhook),
+    }));
+  }
+
+  const db = await readLocalDb();
+  const now = Date.now();
+
+  return db.reminders
+    .filter(
+      (reminder) =>
+        !reminder.done &&
+        !reminder.sentAt &&
+        new Date(reminder.dueAt).getTime() <= now &&
+        reminder.channels.includes("discord"),
+    )
+    .map((reminder) => ({
+      reminder,
+      discordWebhook:
+        db.settings.find((settings) => settings.userId === reminder.userId)?.discordWebhook ?? "",
+    }))
+    .filter((item) => item.discordWebhook);
+}
+
+export async function markReminderSent(userId: string, id: string) {
+  return updateReminder(userId, id, { sentAt: new Date().toISOString() });
+}
+
 export async function getSettings(userId: string): Promise<SettingsRecord> {
   if (usePostgres()) {
     await ensurePostgres();

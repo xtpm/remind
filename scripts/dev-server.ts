@@ -43,6 +43,10 @@ const apiRoutes: Array<{
     pattern: /^\/api\/settings$/,
     load: () => import("../api/settings"),
   },
+  {
+    pattern: /^\/api\/cron\/reminders$/,
+    load: () => import("../api/cron/reminders"),
+  },
 ];
 
 function enhanceResponse(res: ServerResponse): ApiResponse {

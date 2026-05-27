@@ -31,9 +31,18 @@ Set these Vercel environment variables:
 ```txt
 AUTH_SECRET
 DATABASE_URL
+CRON_SECRET optional
 ```
 
 `DATABASE_URL` should point at a Postgres database. The API creates the required tables automatically on first use.
+
+Discord webhook reminders are sent by the backend cron route:
+
+```txt
+/api/cron/reminders
+```
+
+On the free Vercel Hobby plan, Vercel cron jobs cannot run every minute. This repo uses a GitHub Actions schedule in `.github/workflows/reminder-cron.yml` to ping the backend every 5 minutes and send due reminders that include the Discord channel.
 
 ## Domain
 

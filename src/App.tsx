@@ -133,6 +133,7 @@ export function App() {
   const [webhook, setWebhook] = useState("");
   const [notificationState, setNotificationState] = useState(Notification.permission);
   const [now, setNow] = useState(Date.now());
+  const [browserNotifiedIds, setBrowserNotifiedIds] = useState<string[]>([]);
   const [enteringReminderIds, setEnteringReminderIds] = useState<string[]>([]);
   const [deletingReminderIds, setDeletingReminderIds] = useState<string[]>([]);
 
@@ -147,7 +148,7 @@ export function App() {
 
   const nextReminder = sortedReminders.find((reminder) => !reminder.done);
   const activeCount = reminders.filter((reminder) => !reminder.done).length;
-  const webhookStatus: "linked" | "offline" = "offline";
+  const webhookStatus: "linked" | "offline" = webhook.trim() ? "linked" : "offline";
 
   const loadUserData = useCallback(async () => {
     const [reminderData, settingsData] = await Promise.all([
@@ -210,6 +211,7 @@ export function App() {
       (reminder) =>
         !reminder.done &&
         !reminder.sentAt &&
+        !browserNotifiedIds.includes(reminder.id) &&
         new Date(reminder.dueAt).getTime() <= now,
     );
 
@@ -219,27 +221,33 @@ export function App() {
       if (reminder.channels.some((channel) => channel === "desktop" || channel === "phone")) {
         sendBrowserNotification(reminder);
       }
-
-      if (reminder.channels.includes("discord") && webhook.trim()) {
-        sendDiscordReminder(reminder, webhook.trim());
-      }
     });
 
-    setReminders((current) =>
-      current.map((reminder) =>
-        due.some((item) => item.id === reminder.id)
-          ? { ...reminder, sentAt: new Date().toISOString() }
-          : reminder,
-      ),
-    );
+    setBrowserNotifiedIds((current) => [
+      ...current,
+      ...due.map((reminder) => reminder.id).filter((id) => !current.includes(id)),
+    ]);
 
-    due.forEach((reminder) => {
-      apiRequest(`/api/reminders/${reminder.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ sentAt: new Date().toISOString() }),
-      }).catch(() => undefined);
-    });
-  }, [now, reminders, webhook]);
+    const clientOnlyDue = due.filter((reminder) => !reminder.channels.includes("discord"));
+    const sentAt = new Date().toISOString();
+
+    if (clientOnlyDue.length) {
+      setReminders((current) =>
+        current.map((reminder) =>
+          clientOnlyDue.some((item) => item.id === reminder.id)
+            ? { ...reminder, sentAt }
+            : reminder,
+        ),
+      );
+
+      clientOnlyDue.forEach((reminder) => {
+        apiRequest(`/api/reminders/${reminder.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ sentAt }),
+        }).catch(() => undefined);
+      });
+    }
+  }, [now, reminders, browserNotifiedIds]);
 
   async function askForNotifications() {
     const permission = await Notification.requestPermission();
@@ -254,21 +262,6 @@ export function App() {
       icon: "/icon.svg",
       tag: reminder.id,
     });
-  }
-
-  async function sendDiscordReminder(reminder: Reminder, targetWebhook: string) {
-    try {
-      await fetch(targetWebhook, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: "kuudere reminders",
-          content: `**${reminder.title}**\n${reminder.note || "reminder is due."}`,
-        }),
-      });
-    } catch {
-      console.warn("Discord webhook failed");
-    }
   }
 
   function toggleChannel(channel: Channel) {
@@ -387,7 +380,7 @@ export function App() {
   if (!authReady) {
     return (
       <main className="app-shell auth-shell">
-        <section className="hero-band auth-hero">
+        <section className="auth-layout">
           <div>
             <p className="eyebrow">r_ / loading</p>
             <h1>reminders</h1>
@@ -401,85 +394,83 @@ export function App() {
   if (!session) {
     return (
       <main className="app-shell auth-shell">
-        <section className="hero-band auth-hero">
-          <div>
+        <section className="auth-layout">
+          <div className="auth-copy">
             <p className="eyebrow">r_ / access</p>
             <h1>reminders</h1>
             <p className="subtitle">
-              sign in to keep your reminder queue separate.
+              a quiet reminder system for desktop, phone, and discord.
             </p>
-          </div>
 
-          <div className="status-stack" aria-label="Auth status">
             <div className="live-pill">
               <Shield size={15} />
               <span>private beta</span>
             </div>
           </div>
-        </section>
 
-        <section className="auth-grid">
-          <form className="panel auth-panel" onSubmit={submitAuth}>
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">{authMode}</p>
-                <h2>{authMode === "login" ? "welcome back" : "create account"}</h2>
+          <section className="auth-card-wrap">
+            <form className="panel auth-panel" onSubmit={submitAuth}>
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">{authMode}</p>
+                  <h2>{authMode === "login" ? "welcome back" : "create account"}</h2>
+                </div>
+                {authMode === "login" ? <LogIn size={19} /> : <UserPlus size={19} />}
               </div>
-              {authMode === "login" ? <LogIn size={19} /> : <UserPlus size={19} />}
-            </div>
 
-            {authMode === "signup" && (
+              {authMode === "signup" && (
+                <label>
+                  <span>name</span>
+                  <input
+                    value={authName}
+                    onChange={(event) => setAuthName(event.target.value)}
+                    placeholder="retrial"
+                    autoComplete="name"
+                  />
+                </label>
+              )}
+
               <label>
-                <span>name</span>
+                <span>email</span>
                 <input
-                  value={authName}
-                  onChange={(event) => setAuthName(event.target.value)}
-                  placeholder="retrial"
-                  autoComplete="name"
+                  type="email"
+                  value={authEmail}
+                  onChange={(event) => setAuthEmail(event.target.value)}
+                  placeholder="you@kuudere.cc"
+                  autoComplete="email"
                 />
               </label>
-            )}
 
-            <label>
-              <span>email</span>
-              <input
-                type="email"
-                value={authEmail}
-                onChange={(event) => setAuthEmail(event.target.value)}
-                placeholder="you@kuudere.cc"
-                autoComplete="email"
-              />
-            </label>
+              <label>
+                <span>password</span>
+                <input
+                  type="password"
+                  value={authPassword}
+                  onChange={(event) => setAuthPassword(event.target.value)}
+                  placeholder="********"
+                  autoComplete={authMode === "login" ? "current-password" : "new-password"}
+                />
+              </label>
 
-            <label>
-              <span>password</span>
-              <input
-                type="password"
-                value={authPassword}
-                onChange={(event) => setAuthPassword(event.target.value)}
-                placeholder="********"
-                autoComplete={authMode === "login" ? "current-password" : "new-password"}
-              />
-            </label>
+              {authError && <p className="auth-error">{authError}</p>}
 
-            {authError && <p className="auth-error">{authError}</p>}
+              <button className="primary-action" type="submit">
+                {authMode === "login" ? <LogIn size={17} /> : <UserPlus size={17} />}
+                {authMode === "login" ? "sign in" : "sign up"}
+              </button>
 
-            <button className="primary-action" type="submit">
-              {authMode === "login" ? <LogIn size={17} /> : <UserPlus size={17} />}
-              {authMode === "login" ? "sign in" : "sign up"}
-            </button>
-
-            <button
-              className="ghost-action wide"
-              type="button"
-              onClick={() => {
-                setAuthMode(authMode === "login" ? "signup" : "login");
-                setAuthError("");
-              }}
-            >
-              {authMode === "login" ? "need an account" : "have an account"}
-            </button>
-          </form>
+              <button
+                className="ghost-action wide"
+                type="button"
+                onClick={() => {
+                  setAuthMode(authMode === "login" ? "signup" : "login");
+                  setAuthError("");
+                }}
+              >
+                {authMode === "login" ? "need an account" : "have an account"}
+              </button>
+            </form>
+          </section>
         </section>
       </main>
     );
