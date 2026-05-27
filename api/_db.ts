@@ -312,10 +312,6 @@ export async function listDueDiscordReminders() {
     .filter((item) => item.discordWebhook);
 }
 
-export async function markReminderSent(userId: string, id: string) {
-  return updateReminder(userId, id, { sentAt: new Date().toISOString() });
-}
-
 export async function getSettings(userId: string): Promise<SettingsRecord> {
   if (usePostgres()) {
     await ensurePostgres();

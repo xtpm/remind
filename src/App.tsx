@@ -254,22 +254,16 @@ export function App() {
     ]);
 
     const clientOnlyDue = due.filter((reminder) => !reminder.channels.includes("discord"));
-    const sentAt = new Date().toISOString();
 
     if (clientOnlyDue.length) {
       setReminders((current) =>
-        current.map((reminder) =>
-          clientOnlyDue.some((item) => item.id === reminder.id)
-            ? { ...reminder, sentAt }
-            : reminder,
+        current.filter(
+          (reminder) => !clientOnlyDue.some((item) => item.id === reminder.id),
         ),
       );
 
       clientOnlyDue.forEach((reminder) => {
-        apiRequest(`/api/reminders/${reminder.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ sentAt }),
-        }).catch(() => undefined);
+        apiRequest(`/api/reminders/${reminder.id}`, { method: "DELETE" }).catch(() => undefined);
       });
     }
   }, [now, reminders, browserNotifiedIds]);
@@ -665,7 +659,6 @@ export function App() {
                         </span>
                       );
                     })}
-                    {reminder.sentAt && <span>sent</span>}
                   </div>
                 </div>
 

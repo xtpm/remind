@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { sendDiscordEmbed } from "../_discord.js";
-import { listDueDiscordReminders, markReminderSent } from "../_db.js";
+import { deleteReminder, listDueDiscordReminders } from "../_db.js";
 
 function isAuthorized(req: VercelRequest) {
   if (!process.env.CRON_SECRET) return true;
@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         description: reminder.note || "reminder is due.",
         footer: { text: `due ${reminder.dueAt}` },
       });
-      await markReminderSent(reminder.userId, reminder.id);
+      await deleteReminder(reminder.userId, reminder.id);
       return reminder.id;
     }),
   );
