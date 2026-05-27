@@ -212,6 +212,26 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (!session) return;
+
+    async function checkDiscordDelivery() {
+      try {
+        const result = await apiRequest<{ sent: number }>("/api/cron/reminders");
+        if (result.sent > 0) {
+          await loadUserData();
+        }
+      } catch {
+        // Delivery checks are best-effort; scheduled GitHub Actions also pings this route.
+      }
+    }
+
+    checkDiscordDelivery();
+    const timer = window.setInterval(checkDiscordDelivery, 30000);
+
+    return () => window.clearInterval(timer);
+  }, [session, loadUserData]);
+
+  useEffect(() => {
     const due = reminders.filter(
       (reminder) =>
         !reminder.done &&
