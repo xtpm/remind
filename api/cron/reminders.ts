@@ -1,32 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { sendDiscordEmbed } from "../_discord.js";
 import { listDueDiscordReminders, markReminderSent } from "../_db.js";
 
 function isAuthorized(req: VercelRequest) {
   if (!process.env.CRON_SECRET) return true;
   return req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
-}
-
-async function sendDiscordWebhook(webhook: string, title: string, note: string, dueAt: string) {
-  const response = await fetch(webhook, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: "kuudere reminders",
-      content: `**${title}**\n${note || "reminder is due."}`,
-      embeds: [
-        {
-          title,
-          description: note || "reminder is due.",
-          color: 16743094,
-          footer: { text: `due ${dueAt}` },
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Discord webhook failed with ${response.status}`);
-  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -44,12 +22,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const due = await listDueDiscordReminders();
   const results = await Promise.allSettled(
     due.map(async ({ reminder, discordWebhook }) => {
-      await sendDiscordWebhook(
-        discordWebhook,
-        reminder.title,
-        reminder.note,
-        reminder.dueAt,
-      );
+      await sendDiscordEmbed(discordWebhook, {
+        title: reminder.title,
+        description: reminder.note || "reminder is due.",
+        footer: { text: `due ${reminder.dueAt}` },
+      });
       await markReminderSent(reminder.userId, reminder.id);
       return reminder.id;
     }),

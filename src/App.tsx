@@ -133,6 +133,7 @@ export function App() {
   const [webhook, setWebhook] = useState("");
   const [notificationState, setNotificationState] = useState(Notification.permission);
   const [now, setNow] = useState(Date.now());
+  const [webhookTestState, setWebhookTestState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [browserNotifiedIds, setBrowserNotifiedIds] = useState<string[]>([]);
   const [enteringReminderIds, setEnteringReminderIds] = useState<string[]>([]);
   const [deletingReminderIds, setDeletingReminderIds] = useState<string[]>([]);
@@ -202,6 +203,10 @@ export function App() {
   }, [webhook, session, settingsReady]);
 
   useEffect(() => {
+    setWebhookTestState("idle");
+  }, [webhook]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
@@ -262,6 +267,20 @@ export function App() {
       icon: "/icon.svg",
       tag: reminder.id,
     });
+  }
+
+  async function testDiscordWebhook() {
+    if (webhookStatus !== "linked" || webhookTestState === "sending") return;
+
+    setWebhookTestState("sending");
+
+    try {
+      await apiRequest("/api/discord/test", { method: "POST" });
+      setWebhookTestState("sent");
+      window.setTimeout(() => setWebhookTestState("idle"), 2400);
+    } catch {
+      setWebhookTestState("failed");
+    }
   }
 
   function toggleChannel(channel: Channel) {
@@ -671,9 +690,25 @@ export function App() {
             />
           </label>
 
-          <div className={`webhook-status ${webhookStatus}`}>
-            <span aria-hidden="true" />
-            <strong>{webhookStatus}</strong>
+          <div className="webhook-tools">
+            <div className={`webhook-status ${webhookStatus}`}>
+              <span aria-hidden="true" />
+              <strong>{webhookStatus}</strong>
+            </div>
+            <button
+              className="ghost-action webhook-test"
+              type="button"
+              onClick={testDiscordWebhook}
+              disabled={webhookStatus !== "linked" || webhookTestState === "sending"}
+            >
+              {webhookTestState === "sending"
+                ? "sending"
+                : webhookTestState === "sent"
+                  ? "sent"
+                  : webhookTestState === "failed"
+                    ? "failed"
+                    : "test"}
+            </button>
           </div>
 
           <a className="link-out" href="https://discord.com/developers/docs/resources/webhook" target="_blank">

@@ -47,6 +47,10 @@ const apiRoutes: Array<{
     pattern: /^\/api\/cron\/reminders$/,
     load: () => import("../api/cron/reminders"),
   },
+  {
+    pattern: /^\/api\/discord\/test$/,
+    load: () => import("../api/discord/test"),
+  },
 ];
 
 function enhanceResponse(res: ServerResponse): ApiResponse {
