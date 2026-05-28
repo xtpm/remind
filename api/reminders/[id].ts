@@ -10,6 +10,12 @@ function reminderId(req: VercelRequest) {
   return Array.isArray(id) ? id[0] : id;
 }
 
+function parseDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!method(req, res, ["PATCH", "DELETE"])) return;
 
@@ -33,7 +39,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (typeof body.title === "string") patch.title = body.title.trim();
   if (typeof body.note === "string") patch.note = body.note.trim();
-  if (typeof body.dueAt === "string") patch.dueAt = body.dueAt;
+  if (typeof body.dueAt === "string") {
+    const dueAt = parseDateTime(body.dueAt);
+    if (!dueAt) {
+      res.status(400).json({ error: "invalid reminder time" });
+      return;
+    }
+    patch.dueAt = dueAt;
+  }
   if (typeof body.done === "boolean") patch.done = body.done;
   if (typeof body.sentAt === "string" || body.sentAt === undefined) patch.sentAt = body.sentAt;
   if (Array.isArray(body.channels)) {

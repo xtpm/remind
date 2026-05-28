@@ -161,7 +161,7 @@ function mapReminder(row: Record<string, unknown>): ReminderRecord {
     userId: String(row.user_id),
     title: String(row.title),
     note: String(row.note),
-    dueAt: new Date(row.due_at as string | Date).toISOString().slice(0, 16),
+    dueAt: new Date(row.due_at as string | Date).toISOString(),
     channels: Array.isArray(row.channels) ? row.channels : [],
     done: Boolean(row.done),
     sentAt: row.sent_at ? new Date(row.sent_at as string | Date).toISOString() : undefined,

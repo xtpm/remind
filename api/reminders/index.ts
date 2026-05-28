@@ -10,6 +10,13 @@ type ReminderBody = {
   channels?: Channel[];
 };
 
+function parseDueAt(value?: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!method(req, res, ["GET", "POST"])) return;
 
@@ -23,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const body = await readJson<ReminderBody>(req);
   const title = body.title?.trim();
-  const dueAt = body.dueAt;
+  const dueAt = parseDueAt(body.dueAt);
   const channels = body.channels?.filter((channel) =>
     ["desktop", "phone", "discord"].includes(channel),
   );

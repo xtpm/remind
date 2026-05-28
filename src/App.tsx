@@ -47,8 +47,17 @@ const channelMeta: Record<Channel, { label: string; icon: typeof Monitor }> = {
 const defaultTime = () => {
   const date = new Date(Date.now() + 30 * 60 * 1000);
   date.setSeconds(0, 0);
-  return date.toISOString().slice(0, 16);
+  return formatDatetimeLocal(date);
 };
+
+function formatDatetimeLocal(date: Date) {
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function datetimeLocalToIso(value: string) {
+  return new Date(value).toISOString();
+}
 
 const starterReminders: Reminder[] = [
   {
@@ -64,7 +73,7 @@ const starterReminders: Reminder[] = [
     id: crypto.randomUUID(),
     title: "wire discord delivery",
     note: "move webhook send to backend before real use",
-    dueAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    dueAt: formatDatetimeLocal(new Date(Date.now() + 3 * 60 * 60 * 1000)),
     channels: ["discord"],
     done: false,
     createdAt: new Date().toISOString(),
@@ -348,7 +357,7 @@ export function App() {
       body: JSON.stringify({
         title: title.trim(),
         note: note.trim(),
-        dueAt,
+        dueAt: datetimeLocalToIso(dueAt),
         channels,
       }),
     });
