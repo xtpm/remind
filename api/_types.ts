@@ -26,6 +26,14 @@ export type SettingsRecord = {
   discordUserId: string;
 };
 
+export type PushSubscriptionRecord = {
+  id: string;
+  userId: string;
+  endpoint: string;
+  subscription: unknown;
+  createdAt: string;
+};
+
 export type PublicUser = {
   id: string;
   name: string;

@@ -19,12 +19,14 @@
     "react": "latest",
     "react-dom": "latest",
     "typescript": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
+    "@types/web-push": "^3.6.4",
     "tsx": "^4.22.3",
     "vercel": "^54.5.0"
   }

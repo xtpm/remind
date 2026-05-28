@@ -51,6 +51,18 @@ const apiRoutes: Array<{
     pattern: /^\/api\/discord\/test$/,
     load: () => import("../api/discord/test"),
   },
+  {
+    pattern: /^\/api\/push\/public-key$/,
+    load: () => import("../api/push/public-key"),
+  },
+  {
+    pattern: /^\/api\/push\/subscribe$/,
+    load: () => import("../api/push/subscribe"),
+  },
+  {
+    pattern: /^\/api\/push\/unsubscribe$/,
+    load: () => import("../api/push/unsubscribe"),
+  },
 ];
 
 function enhanceResponse(res: ServerResponse): ApiResponse {

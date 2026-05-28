@@ -99,6 +99,13 @@ async function apiRequest<T>(path: string, options: RequestInit = {}) {
   return data;
 }
 
+function urlBase64ToUint8Array(value: string) {
+  const padding = "=".repeat((4 - (value.length % 4)) % 4);
+  const base64 = `${value}${padding}`.replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  return Uint8Array.from([...raw].map((char) => char.charCodeAt(0)));
+}
+
 function timeUntil(value: string) {
   const ms = new Date(value).getTime() - Date.now();
   const abs = Math.abs(ms);
@@ -271,8 +278,33 @@ export function App() {
   }, [now, reminders, browserNotifiedIds]);
 
   async function askForNotifications() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setNotificationState("denied");
+      return;
+    }
+
     const permission = await Notification.requestPermission();
     setNotificationState(permission);
+
+    if (permission !== "granted") return;
+
+    const [{ publicKey }, registration] = await Promise.all([
+      apiRequest<{ publicKey: string }>("/api/push/public-key"),
+      navigator.serviceWorker.register("/sw.js"),
+    ]);
+
+    const existing = await registration.pushManager.getSubscription();
+    const subscription =
+      existing ??
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      }));
+
+    await apiRequest("/api/push/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ subscription }),
+    });
   }
 
   function sendBrowserNotification(reminder: Reminder) {

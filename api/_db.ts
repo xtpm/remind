@@ -1,12 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import postgres from "postgres";
-import type { ReminderRecord, SettingsRecord, UserRecord } from "./_types";
+import type { PushSubscriptionRecord, ReminderRecord, SettingsRecord, UserRecord } from "./_types";
 
 type LocalDb = {
   users: UserRecord[];
   reminders: ReminderRecord[];
   settings: SettingsRecord[];
+  pushSubscriptions: PushSubscriptionRecord[];
 };
 
 const localDbPath = join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data", "db.json");
@@ -82,6 +83,16 @@ async function ensurePostgres() {
   `;
 
   await sql`
+    create table if not exists push_subscriptions (
+      id text primary key,
+      user_id text not null references users(id) on delete cascade,
+      endpoint text not null unique,
+      subscription jsonb not null,
+      created_at timestamptz not null default now()
+    )
+  `;
+
+  await sql`
     alter table user_settings
     add column if not exists discord_user_id text not null default ''
   `;
@@ -112,10 +123,21 @@ async function readLocalDb(): Promise<LocalDb> {
       ],
       reminders: [],
       settings: [{ userId: "demo-user", discordWebhook: "", discordUserId: "" }],
+      pushSubscriptions: [],
     };
     await writeLocalDb(db);
     return db;
   }
+}
+
+function mapPushSubscription(row: Record<string, unknown>): PushSubscriptionRecord {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    endpoint: String(row.endpoint),
+    subscription: row.subscription,
+    createdAt: new Date(row.created_at as string | Date).toISOString(),
+  };
 }
 
 async function writeLocalDb(db: LocalDb) {
@@ -277,18 +299,85 @@ export async function deleteReminder(userId: string, id: string) {
   await writeLocalDb(db);
 }
 
+export async function savePushSubscription(
+  userId: string,
+  subscription: { endpoint?: string; [key: string]: unknown },
+) {
+  if (!subscription.endpoint) throw new Error("missing push endpoint");
+
+  const record: PushSubscriptionRecord = {
+    id: crypto.randomUUID(),
+    userId,
+    endpoint: subscription.endpoint,
+    subscription,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (usePostgres()) {
+    await ensurePostgres();
+    const rows = await getSql()`
+      insert into push_subscriptions (id, user_id, endpoint, subscription, created_at)
+      values (
+        ${record.id},
+        ${record.userId},
+        ${record.endpoint},
+        ${getSql().json(record.subscription as any)},
+        ${record.createdAt}
+      )
+      on conflict (endpoint) do update
+      set user_id = excluded.user_id,
+          subscription = excluded.subscription
+      returning *
+    `;
+    return mapPushSubscription(rows[0]);
+  }
+
+  const db = await readLocalDb();
+  db.pushSubscriptions = db.pushSubscriptions.filter((item) => item.endpoint !== record.endpoint);
+  db.pushSubscriptions.push(record);
+  await writeLocalDb(db);
+  return record;
+}
+
+export async function deletePushSubscription(userId: string, endpoint: string) {
+  if (usePostgres()) {
+    await ensurePostgres();
+    await getSql()`delete from push_subscriptions where user_id = ${userId} and endpoint = ${endpoint}`;
+    return;
+  }
+
+  const db = await readLocalDb();
+  db.pushSubscriptions = db.pushSubscriptions.filter(
+    (item) => !(item.userId === userId && item.endpoint === endpoint),
+  );
+  await writeLocalDb(db);
+}
+
+export async function listPushSubscriptions(userId: string) {
+  if (usePostgres()) {
+    await ensurePostgres();
+    const rows = await getSql()`
+      select * from push_subscriptions
+      where user_id = ${userId}
+      order by created_at desc
+    `;
+    return rows.map(mapPushSubscription);
+  }
+
+  const db = await readLocalDb();
+  return db.pushSubscriptions.filter((item) => item.userId === userId);
+}
+
 export async function listDueDiscordReminders() {
   if (usePostgres()) {
     await ensurePostgres();
     const rows = await getSql()`
       select reminders.*, user_settings.discord_webhook, user_settings.discord_user_id
       from reminders
-      join user_settings on user_settings.user_id = reminders.user_id
+      left join user_settings on user_settings.user_id = reminders.user_id
       where reminders.done = false
         and reminders.sent_at is null
         and reminders.due_at <= now()
-        and reminders.channels ? 'discord'
-        and user_settings.discord_webhook <> ''
       order by reminders.due_at asc
       limit 50
     `;
@@ -308,8 +397,7 @@ export async function listDueDiscordReminders() {
       (reminder) =>
         !reminder.done &&
         !reminder.sentAt &&
-        new Date(reminder.dueAt).getTime() <= now &&
-        reminder.channels.includes("discord"),
+        new Date(reminder.dueAt).getTime() <= now,
     )
     .map((reminder) => ({
       reminder,
