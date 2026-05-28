@@ -554,7 +554,7 @@ export function App() {
         <section className="auth-layout">
           <div className="auth-copy">
             <p className="eyebrow">r_ / access</p>
-            <h1>mind</h1>
+            <h1>remind</h1>
             <p className="subtitle">
               sign in to manage your reminder queue and delivery channels.
             </p>
@@ -577,7 +577,7 @@ export function App() {
       <main className="landing-shell">
         <nav className="landing-nav" aria-label="Landing navigation">
           <button className="brand-button" type="button" onClick={() => navigate("/")}>
-            mind
+            remind
           </button>
           <div className="landing-links">
             <a href="#features">features</a>
