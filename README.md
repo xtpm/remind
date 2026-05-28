@@ -44,6 +44,8 @@ Discord webhook reminders are sent by the backend cron route:
 
 On the free Vercel Hobby plan, Vercel cron jobs cannot run every minute. This repo uses a GitHub Actions schedule in `.github/workflows/reminder-cron.yml` to ping the backend every 5 minutes and send due reminders that include the Discord channel.
 
+To ping a Discord user, save their numeric Discord user ID in the delivery settings. The app sends mentions as `<@USER_ID>` with Discord `allowed_mentions` restricted to that user.
+
 ## Domain
 
 Target domain:

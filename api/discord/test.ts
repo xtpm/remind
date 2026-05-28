@@ -18,6 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await sendDiscordEmbed(settings.discordWebhook, {
     title: "test reminder",
     description: "Discord webhook delivery is linked.",
+    mentionUserId: settings.discordUserId,
     footer: { text: `sent from remind.kuudere.cc for ${user.name}` },
   });
 

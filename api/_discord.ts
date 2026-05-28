@@ -1,16 +1,21 @@
 type DiscordEmbed = {
   title: string;
   description: string;
+  mentionUserId?: string;
   footer?: { text: string };
 };
 
 export async function sendDiscordEmbed(webhook: string, embed: DiscordEmbed) {
+  const mention = embed.mentionUserId ? `<@${embed.mentionUserId}>` : "";
   const response = await fetch(webhook, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       username: "kuudere reminders",
-      content: "",
+      content: mention,
+      allowed_mentions: {
+        users: embed.mentionUserId ? [embed.mentionUserId] : [],
+      },
       embeds: [
         {
           title: embed.title,

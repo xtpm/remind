@@ -131,6 +131,7 @@ export function App() {
   const [dueAt, setDueAt] = useState(defaultTime);
   const [channels, setChannels] = useState<Channel[]>(["desktop", "phone"]);
   const [webhook, setWebhook] = useState("");
+  const [discordUserId, setDiscordUserId] = useState("");
   const [notificationState, setNotificationState] = useState(Notification.permission);
   const [now, setNow] = useState(Date.now());
   const [webhookTestState, setWebhookTestState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
@@ -154,11 +155,12 @@ export function App() {
   const loadUserData = useCallback(async () => {
     const [reminderData, settingsData] = await Promise.all([
       apiRequest<{ reminders: Reminder[] }>("/api/reminders"),
-      apiRequest<{ settings: { discordWebhook: string } }>("/api/settings"),
+      apiRequest<{ settings: { discordWebhook: string; discordUserId: string } }>("/api/settings"),
     ]);
 
     setReminders(reminderData.reminders);
     setWebhook(settingsData.settings.discordWebhook);
+    setDiscordUserId(settingsData.settings.discordUserId ?? "");
     setSettingsReady(true);
   }, []);
 
@@ -195,16 +197,16 @@ export function App() {
     const timeout = window.setTimeout(() => {
       apiRequest("/api/settings", {
         method: "PATCH",
-        body: JSON.stringify({ discordWebhook: webhook }),
+        body: JSON.stringify({ discordWebhook: webhook, discordUserId }),
       }).catch(() => undefined);
     }, 500);
 
     return () => window.clearTimeout(timeout);
-  }, [webhook, session, settingsReady]);
+  }, [webhook, discordUserId, session, settingsReady]);
 
   useEffect(() => {
     setWebhookTestState("idle");
-  }, [webhook]);
+  }, [webhook, discordUserId]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -393,6 +395,7 @@ export function App() {
       setSettingsReady(false);
       setReminders([]);
       setWebhook("");
+      setDiscordUserId("");
 
       loadUserData().catch(() => {
         setSettingsReady(true);
@@ -408,6 +411,7 @@ export function App() {
     setSettingsReady(false);
     setReminders([]);
     setWebhook("");
+    setDiscordUserId("");
   }
 
   if (!authReady) {
@@ -700,6 +704,15 @@ export function App() {
               value={webhook}
               onChange={(event) => setWebhook(event.target.value)}
               placeholder="https://discord.com/api/webhooks/..."
+            />
+          </label>
+
+          <label>
+            <span>discord user id</span>
+            <input
+              value={discordUserId}
+              onChange={(event) => setDiscordUserId(event.target.value.replace(/\D/g, ""))}
+              placeholder="123456789012345678"
             />
           </label>
 

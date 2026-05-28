@@ -76,8 +76,14 @@ async function ensurePostgres() {
   await sql`
     create table if not exists user_settings (
       user_id text primary key references users(id) on delete cascade,
-      discord_webhook text not null default ''
+      discord_webhook text not null default '',
+      discord_user_id text not null default ''
     )
+  `;
+
+  await sql`
+    alter table user_settings
+    add column if not exists discord_user_id text not null default ''
   `;
 
   await sql`
@@ -105,7 +111,7 @@ async function readLocalDb(): Promise<LocalDb> {
         },
       ],
       reminders: [],
-      settings: [{ userId: "demo-user", discordWebhook: "" }],
+      settings: [{ userId: "demo-user", discordWebhook: "", discordUserId: "" }],
     };
     await writeLocalDb(db);
     return db;
@@ -275,7 +281,7 @@ export async function listDueDiscordReminders() {
   if (usePostgres()) {
     await ensurePostgres();
     const rows = await getSql()`
-      select reminders.*, user_settings.discord_webhook
+      select reminders.*, user_settings.discord_webhook, user_settings.discord_user_id
       from reminders
       join user_settings on user_settings.user_id = reminders.user_id
       where reminders.done = false
@@ -290,6 +296,7 @@ export async function listDueDiscordReminders() {
     return rows.map((row) => ({
       reminder: mapReminder(row),
       discordWebhook: String(row.discord_webhook),
+      discordUserId: String(row.discord_user_id ?? ""),
     }));
   }
 
@@ -308,6 +315,8 @@ export async function listDueDiscordReminders() {
       reminder,
       discordWebhook:
         db.settings.find((settings) => settings.userId === reminder.userId)?.discordWebhook ?? "",
+      discordUserId:
+        db.settings.find((settings) => settings.userId === reminder.userId)?.discordUserId ?? "",
     }))
     .filter((item) => item.discordWebhook);
 }
@@ -321,13 +330,17 @@ export async function getSettings(userId: string): Promise<SettingsRecord> {
       on conflict (user_id) do update set user_id = excluded.user_id
       returning *
     `;
-    return { userId, discordWebhook: rows[0].discord_webhook };
+    return {
+      userId,
+      discordWebhook: rows[0].discord_webhook,
+      discordUserId: rows[0].discord_user_id ?? "",
+    };
   }
 
   const db = await readLocalDb();
   let settings = db.settings.find((item) => item.userId === userId);
   if (!settings) {
-    settings = { userId, discordWebhook: "" };
+    settings = { userId, discordWebhook: "", discordUserId: "" };
     db.settings.push(settings);
     await writeLocalDb(db);
   }
@@ -338,12 +351,18 @@ export async function updateSettings(userId: string, settings: Partial<SettingsR
   if (usePostgres()) {
     await ensurePostgres();
     const rows = await getSql()`
-      insert into user_settings (user_id, discord_webhook)
-      values (${userId}, ${settings.discordWebhook ?? ""})
-      on conflict (user_id) do update set discord_webhook = excluded.discord_webhook
+      insert into user_settings (user_id, discord_webhook, discord_user_id)
+      values (${userId}, ${settings.discordWebhook ?? ""}, ${settings.discordUserId ?? ""})
+      on conflict (user_id) do update
+      set discord_webhook = excluded.discord_webhook,
+          discord_user_id = excluded.discord_user_id
       returning *
     `;
-    return { userId, discordWebhook: rows[0].discord_webhook };
+    return {
+      userId,
+      discordWebhook: rows[0].discord_webhook,
+      discordUserId: rows[0].discord_user_id ?? "",
+    };
   }
 
   const db = await readLocalDb();

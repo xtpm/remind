@@ -21,10 +21,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const due = await listDueDiscordReminders();
   const results = await Promise.allSettled(
-    due.map(async ({ reminder, discordWebhook }) => {
+    due.map(async ({ reminder, discordWebhook, discordUserId }) => {
       await sendDiscordEmbed(discordWebhook, {
         title: reminder.title,
         description: reminder.note || "reminder is due.",
+        mentionUserId: discordUserId,
         footer: { text: `due ${reminder.dueAt}` },
       });
       await deleteReminder(reminder.userId, reminder.id);

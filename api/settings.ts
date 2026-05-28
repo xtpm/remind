@@ -4,6 +4,7 @@ import { getSettings, updateSettings } from "./_db.js";
 
 type SettingsBody = {
   discordWebhook?: string;
+  discordUserId?: string;
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -24,6 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = await readJson<SettingsBody>(req);
   const settings = await updateSettings(user.id, {
     discordWebhook: body.discordWebhook?.trim() ?? "",
+    discordUserId: body.discordUserId?.trim() ?? "",
   });
 
   res.status(200).json({

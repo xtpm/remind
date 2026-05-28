@@ -23,6 +23,7 @@ export type ReminderRecord = {
 export type SettingsRecord = {
   userId: string;
   discordWebhook: string;
+  discordUserId: string;
 };
 
 export type PublicUser = {
