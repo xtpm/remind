@@ -441,35 +441,31 @@ button {
 
 .benefit-stack {
   display: grid;
-  gap: 1px;
-  margin-top: 24px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--line);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 30px;
 }
 
 .benefit-stack article {
   display: grid;
-  grid-template-columns: minmax(240px, 0.7fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(26px, 5vw, 72px);
-  min-height: 330px;
-  padding: clamp(26px, 5vw, 56px);
-  background: rgba(18, 7, 19, 0.74);
-}
-
-.benefit-stack article:nth-child(even) {
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.7fr);
-}
-
-.benefit-stack article:nth-child(even) .benefit-visual {
-  order: 2;
+  grid-template-rows: auto 1fr;
+  gap: 24px;
+  min-height: 430px;
+  padding: 18px;
+  border: 1px solid rgba(255, 122, 182, 0.2);
+  border-radius: calc(var(--radius) + 6px);
+  background:
+    linear-gradient(180deg, rgba(255, 122, 182, 0.08), transparent 42%),
+    rgba(18, 7, 19, 0.62);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
 }
 
 .benefit-stack article > div:last-child {
   display: grid;
-  gap: 12px;
-  max-width: 520px;
+  align-content: end;
+  gap: 13px;
+  min-height: 160px;
+  padding: 0 4px 4px;
 }
 
 .benefit-stack article > div:last-child span {
@@ -480,8 +476,9 @@ button {
 
 .benefit-stack h2 {
   margin: 0;
-  font-size: clamp(34px, 5vw, 58px);
-  line-height: 0.98;
+  font-size: clamp(28px, 3.4vw, 44px);
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .benefit-stack p {
@@ -492,31 +489,58 @@ button {
 }
 
 .benefit-visual {
+  position: relative;
   display: grid;
   align-items: center;
   justify-items: center;
-  min-height: 190px;
+  min-height: 210px;
+  overflow: hidden;
   border: 1px solid rgba(255, 122, 182, 0.26);
+  border-radius: calc(var(--radius) + 4px);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 122, 182, 0.16), transparent 42%),
+    linear-gradient(rgba(255, 122, 182, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 122, 182, 0.055) 1px, transparent 1px),
+    rgba(255, 255, 255, 0.028);
+  background-size: auto, 30px 30px, 30px 30px, auto;
+}
+
+.benefit-visual::after {
+  content: "";
+  position: absolute;
+  inset: auto 18px 0;
+  height: 58px;
+  background: linear-gradient(180deg, transparent, rgba(18, 7, 19, 0.88));
+  pointer-events: none;
+}
+
+.capture-card {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  width: min(78%, 260px);
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+  background: rgba(18, 7, 19, 0.58);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+}
+
+.capture-card .input-line {
+  width: 100%;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--radius);
   background:
-    linear-gradient(rgba(255, 122, 182, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 122, 182, 0.05) 1px, transparent 1px),
-    rgba(255, 255, 255, 0.025);
-  background-size: 28px 28px;
+    linear-gradient(90deg, transparent, rgba(255, 122, 182, 0.18), transparent),
+    rgba(18, 7, 19, 0.76);
+  background-size: 180% 100%;
+  animation: shimmer-line 2.8s ease-in-out infinite;
 }
 
-.benefit-visual .input-line {
-  width: min(74%, 260px);
-  height: 42px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: var(--radius);
-  background: rgba(18, 7, 19, 0.7);
-}
-
-.benefit-visual button {
+.capture-card button {
   width: 42px;
   height: 42px;
-  margin-top: -42px;
   border: 1px solid var(--pink);
   border-radius: var(--radius);
   background: var(--pink);
@@ -527,20 +551,45 @@ button {
 
 .delivery-map {
   grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 22px;
   color: var(--pink);
+}
+
+.delivery-map div {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 18px 10px;
+  border: 1px solid rgba(255, 122, 182, 0.2);
+  border-radius: var(--radius);
+  background: rgba(18, 7, 19, 0.48);
+}
+
+.delivery-map span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: lowercase;
 }
 
 .timeline-visual {
   align-content: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .timeline-visual span {
-  width: min(72%, 260px);
-  height: 18px;
+  width: min(78%, 270px);
+  height: 20px;
   border-left: 3px solid var(--pink);
   border-radius: calc(var(--radius) - 2px);
-  background: rgba(255, 255, 255, 0.055);
+  background:
+    linear-gradient(90deg, rgba(255, 122, 182, 0.22), rgba(255, 255, 255, 0.06) 34%, transparent),
+    rgba(255, 255, 255, 0.045);
+  box-shadow: 0 14px 28px rgba(255, 122, 182, 0.08);
+  animation: queue-pulse 2.6s ease-in-out infinite;
+  animation-delay: var(--delay);
 }
 
 .hero-band {
@@ -947,6 +996,30 @@ textarea:focus {
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes shimmer-line {
+  0%,
+  100% {
+    background-position: 120% 0;
+  }
+
+  50% {
+    background-position: -40% 0;
+  }
+}
+
+@keyframes queue-pulse {
+  0%,
+  100% {
+    opacity: 0.64;
+    transform: translateX(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateX(8px);
   }
 }
 
@@ -1802,9 +1875,11 @@ button.console-delivery-row:hover {
   }
 
   .product-preview,
-  .benefit-stack article,
-  .benefit-stack article:nth-child(even),
   .remind-console {
+    grid-template-columns: 1fr;
+  }
+
+  .benefit-stack {
     grid-template-columns: 1fr;
   }
 
@@ -1873,10 +1948,6 @@ button.console-delivery-row:hover {
 
   .preview-sidebar strong {
     grid-column: 1 / -1;
-  }
-
-  .benefit-stack article:nth-child(even) .benefit-visual {
-    order: 0;
   }
 
   .list-panel {
@@ -1973,6 +2044,10 @@ button.console-delivery-row:hover {
 
   .benefit-visual {
     min-height: 150px;
+  }
+
+  .delivery-map {
+    grid-template-columns: 1fr;
   }
 
   .channel-row {

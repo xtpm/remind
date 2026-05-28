@@ -782,8 +782,10 @@ export function App() {
         <section className="benefit-stack" id="features">
           <article>
             <div className="benefit-visual">
-              <span className="input-line" />
-              <button type="button">+</button>
+              <div className="capture-card">
+                <span className="input-line" />
+                <button type="button">+</button>
+              </div>
             </div>
             <div>
               <span>01</span>
@@ -793,9 +795,18 @@ export function App() {
           </article>
           <article id="delivery">
             <div className="benefit-visual delivery-map">
-              <Monitor size={23} />
-              <Smartphone size={23} />
-              <MessageCircle size={23} />
+              <div>
+                <Monitor size={22} />
+                <span>desktop</span>
+              </div>
+              <div>
+                <Smartphone size={22} />
+                <span>iphone</span>
+              </div>
+              <div>
+                <MessageCircle size={22} />
+                <span>discord</span>
+              </div>
             </div>
             <div>
               <span>02</span>
@@ -805,9 +816,9 @@ export function App() {
           </article>
           <article id="pricing">
             <div className="benefit-visual timeline-visual">
-              <span />
-              <span />
-              <span />
+              <span style={{ "--delay": "0s" } as React.CSSProperties} />
+              <span style={{ "--delay": "0.12s" } as React.CSSProperties} />
+              <span style={{ "--delay": "0.24s" } as React.CSSProperties} />
             </div>
             <div>
               <span>03</span>
