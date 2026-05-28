@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   Bell,
   CalendarClock,
   Check,
@@ -14,6 +15,7 @@ import {
   Smartphone,
   Trash2,
   UserPlus,
+  Wifi,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -133,6 +135,7 @@ function timeUntil(value: string) {
 }
 
 export function App() {
+  const [path, setPath] = useState(() => window.location.pathname);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [settingsReady, setSettingsReady] = useState(false);
@@ -168,6 +171,11 @@ export function App() {
   const activeCount = reminders.filter((reminder) => !reminder.done).length;
   const webhookStatus: "linked" | "offline" = webhook.trim() ? "linked" : "offline";
 
+  const navigate = useCallback((nextPath: string) => {
+    window.history.pushState({}, "", nextPath);
+    setPath(nextPath);
+  }, []);
+
   const loadUserData = useCallback(async () => {
     const [reminderData, settingsData] = await Promise.all([
       apiRequest<{ reminders: Reminder[] }>("/api/reminders"),
@@ -178,6 +186,12 @@ export function App() {
     setWebhook(settingsData.settings.discordWebhook);
     setDiscordUserId(settingsData.settings.discordUserId ?? "");
     setSettingsReady(true);
+  }, []);
+
+  useEffect(() => {
+    const syncPath = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", syncPath);
+    return () => window.removeEventListener("popstate", syncPath);
   }, []);
 
   useEffect(() => {
@@ -433,6 +447,7 @@ export function App() {
       setAuthName("");
       setAuthEmail("");
       setAuthPassword("");
+      navigate("/app");
       setSettingsReady(false);
       setReminders([]);
       setWebhook("");
@@ -469,86 +484,176 @@ export function App() {
     );
   }
 
-  if (!session) {
+  const authForm = (
+    <form className="panel auth-panel" onSubmit={submitAuth}>
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">{authMode}</p>
+          <h2>{authMode === "login" ? "welcome back" : "create account"}</h2>
+        </div>
+        {authMode === "login" ? <LogIn size={19} /> : <UserPlus size={19} />}
+      </div>
+
+      {authMode === "signup" && (
+        <label>
+          <span>name</span>
+          <input
+            value={authName}
+            onChange={(event) => setAuthName(event.target.value)}
+            placeholder="retrial"
+            autoComplete="name"
+          />
+        </label>
+      )}
+
+      <label>
+        <span>email</span>
+        <input
+          type="email"
+          value={authEmail}
+          onChange={(event) => setAuthEmail(event.target.value)}
+          placeholder="you@kuudere.cc"
+          autoComplete="email"
+        />
+      </label>
+
+      <label>
+        <span>password</span>
+        <input
+          type="password"
+          value={authPassword}
+          onChange={(event) => setAuthPassword(event.target.value)}
+          placeholder="********"
+          autoComplete={authMode === "login" ? "current-password" : "new-password"}
+        />
+      </label>
+
+      {authError && <p className="auth-error">{authError}</p>}
+
+      <button className="primary-action" type="submit">
+        {authMode === "login" ? <LogIn size={17} /> : <UserPlus size={17} />}
+        {authMode === "login" ? "sign in" : "sign up"}
+      </button>
+
+      <button
+        className="ghost-action wide"
+        type="button"
+        onClick={() => {
+          setAuthMode(authMode === "login" ? "signup" : "login");
+          setAuthError("");
+        }}
+      >
+        {authMode === "login" ? "need an account" : "have an account"}
+      </button>
+    </form>
+  );
+
+  if (!session && (path === "/login" || path === "/app")) {
     return (
       <main className="app-shell auth-shell">
         <section className="auth-layout">
           <div className="auth-copy">
             <p className="eyebrow">r_ / access</p>
-            <h1>reminders</h1>
+            <h1>mind</h1>
             <p className="subtitle">
-              a quiet reminder system for desktop, phone, and discord.
+              sign in to manage your reminder queue and delivery channels.
             </p>
 
-            <div className="live-pill">
-              <Shield size={15} />
-              <span>private beta</span>
-            </div>
+            <button className="ghost-action" type="button" onClick={() => navigate("/")}>
+              back home
+            </button>
           </div>
 
           <section className="auth-card-wrap">
-            <form className="panel auth-panel" onSubmit={submitAuth}>
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">{authMode}</p>
-                  <h2>{authMode === "login" ? "welcome back" : "create account"}</h2>
-                </div>
-                {authMode === "login" ? <LogIn size={19} /> : <UserPlus size={19} />}
-              </div>
-
-              {authMode === "signup" && (
-                <label>
-                  <span>name</span>
-                  <input
-                    value={authName}
-                    onChange={(event) => setAuthName(event.target.value)}
-                    placeholder="retrial"
-                    autoComplete="name"
-                  />
-                </label>
-              )}
-
-              <label>
-                <span>email</span>
-                <input
-                  type="email"
-                  value={authEmail}
-                  onChange={(event) => setAuthEmail(event.target.value)}
-                  placeholder="you@kuudere.cc"
-                  autoComplete="email"
-                />
-              </label>
-
-              <label>
-                <span>password</span>
-                <input
-                  type="password"
-                  value={authPassword}
-                  onChange={(event) => setAuthPassword(event.target.value)}
-                  placeholder="********"
-                  autoComplete={authMode === "login" ? "current-password" : "new-password"}
-                />
-              </label>
-
-              {authError && <p className="auth-error">{authError}</p>}
-
-              <button className="primary-action" type="submit">
-                {authMode === "login" ? <LogIn size={17} /> : <UserPlus size={17} />}
-                {authMode === "login" ? "sign in" : "sign up"}
-              </button>
-
-              <button
-                className="ghost-action wide"
-                type="button"
-                onClick={() => {
-                  setAuthMode(authMode === "login" ? "signup" : "login");
-                  setAuthError("");
-                }}
-              >
-                {authMode === "login" ? "need an account" : "have an account"}
-              </button>
-            </form>
+            {authForm}
           </section>
+        </section>
+      </main>
+    );
+  }
+
+  if (!session || path === "/") {
+    return (
+      <main className="landing-shell">
+        <nav className="landing-nav" aria-label="Landing navigation">
+          <button className="brand-button" type="button" onClick={() => navigate("/")}>
+            mind
+          </button>
+          <div className="landing-links">
+            <a href="#features">features</a>
+            <a href="#delivery">delivery</a>
+            <button className="ghost-action" type="button" onClick={() => navigate(session ? "/app" : "/login")}>
+              {session ? "open app" : "log in"}
+            </button>
+          </div>
+        </nav>
+
+        <section className="landing-hero">
+          <div className="landing-copy">
+            <h1>reminders that actually reach you</h1>
+            <p>
+              Send quiet reminders to desktop, iPhone, and Discord from one clean queue.
+            </p>
+            <div className="landing-actions">
+              <button className="primary-action" type="button" onClick={() => navigate(session ? "/app" : "/login")}>
+                start reminding
+                <ArrowRight size={17} />
+              </button>
+              <button className="ghost-action" type="button" onClick={() => navigate(session ? "/app" : "/login")}>
+                {session ? "open app" : "log in"}
+              </button>
+            </div>
+          </div>
+
+          <section className="landing-preview" aria-label="Reminder product preview">
+            <div className="preview-topline">
+              <span>next queue</span>
+              <strong>linked</strong>
+            </div>
+            <div className="preview-reminder urgent">
+              <div>
+                <strong>pay invoice</strong>
+                <span>in 20m</span>
+              </div>
+              <Monitor size={18} />
+            </div>
+            <div className="preview-reminder">
+              <div>
+                <strong>call back</strong>
+                <span>iphone web app</span>
+              </div>
+              <Smartphone size={18} />
+            </div>
+            <div className="preview-reminder">
+              <div>
+                <strong>deploy check</strong>
+                <span>discord embed</span>
+              </div>
+              <MessageCircle size={18} />
+            </div>
+            <div className="preview-status">
+              <span />
+              webhook ready
+            </div>
+          </section>
+        </section>
+
+        <section className="landing-features" id="features">
+          <article>
+            <Monitor size={20} />
+            <h2>desktop push</h2>
+            <p>Browser notifications for reminders while you work.</p>
+          </article>
+          <article>
+            <Smartphone size={20} />
+            <h2>iphone web app</h2>
+            <p>Install to Home Screen and receive mobile push alerts.</p>
+          </article>
+          <article id="delivery">
+            <Wifi size={20} />
+            <h2>discord webhook</h2>
+            <p>Send reminder embeds and mention your Discord user.</p>
+          </article>
         </section>
       </main>
     );
